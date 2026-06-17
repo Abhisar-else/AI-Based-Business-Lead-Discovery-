@@ -1,8 +1,4 @@
-# AI-Based-Business-Lead-Discovery-
-```python
-import os
-
-readme_content = """# AI-Assisted Business Discovery & Lead Qualification System
+# AI-Assisted Business Discovery & Lead Qualification System
 
 An automated, lightweight Python-based pipeline designed to discover, audit, and organize business information from public sources. This system shifts the focus from massive, noisy data scraping to high-quality, targeted lead qualification by identifying "digital presence gaps" across high-value commercial sectors.
 
