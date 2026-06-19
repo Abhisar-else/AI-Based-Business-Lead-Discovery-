@@ -1,0 +1,31 @@
+# Core
+streamlit>=1.35.0
+pandas>=2.1.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+selenium>=4.18.0
+webdriver-manager>=4.0.0
+
+# AI
+google-generativeai>=0.5.0
+openai>=1.30.0          # Optional fallback
+
+# Google Sheets
+gspread>=6.0.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+
+# Data & Utilities
+python-dotenv>=1.0.0
+lxml>=5.2.0             # Fast HTML parser for BeautifulSoup
+tldextract>=5.1.0       # URL domain extraction
+phonenumbers>=8.13.0    # Phone number normalization
+fake-useragent>=1.5.0   # Rotating user agents
+
+# Visualization
+plotly>=5.20.0
+
+# Testing
+pytest>=8.0.0
+pytest-mock>=3.14.0
+responses>=0.25.0       # Mock HTTP requests in tests
