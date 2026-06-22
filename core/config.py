@@ -113,3 +113,29 @@ def has_sheets_config() -> bool:
         has_spreadsheet
         and has_credentials
     )
+
+def get_sheets_config_status() -> dict[str, object]:
+    """Return Google Sheets setup status without exposing secret values."""
+    creds_path = Path(GOOGLE_CREDENTIALS_PATH)
+    has_service_account_json = bool(GOOGLE_SERVICE_ACCOUNT_JSON.strip())
+    has_credentials_file = creds_path.exists()
+    has_spreadsheet = bool(
+        SPREADSHEET_ID
+        and SPREADSHEET_ID != "your-google-spreadsheet-id-here"
+        and SPREADSHEET_ID != "your-google-spreadsheet-id"
+    )
+
+    if has_service_account_json:
+        credential_source = "GOOGLE_SERVICE_ACCOUNT_JSON"
+    elif has_credentials_file:
+        credential_source = str(creds_path)
+    else:
+        credential_source = ""
+
+    return {
+        "has_spreadsheet_id": has_spreadsheet,
+        "has_credentials": has_service_account_json or has_credentials_file,
+        "credentials_path": str(creds_path),
+        "credential_source": credential_source,
+        "sheet_name": SHEET_NAME,
+    }

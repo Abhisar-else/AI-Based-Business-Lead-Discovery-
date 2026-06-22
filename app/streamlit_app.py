@@ -30,6 +30,7 @@ from core.config import (
     has_openai_key,
     has_serper_key,
     has_sheets_config,
+    get_sheets_config_status,
     SHEET_COLUMNS,
 )
 from core.analyzer import get_analysis_mode
@@ -761,6 +762,7 @@ with tab_settings:
 
     with col_set2:
         st.markdown("#### 📊 Google Sheets Connection")
+        sheets_status = get_sheets_config_status()
 
         if sheets_ok:
             if st.button("🔄  Test Connection", use_container_width=True):
@@ -774,13 +776,31 @@ with tab_settings:
             url = get_sheet_url()
             if url:
                 st.markdown(f"[📊 Open Google Sheet]({url})")
+            st.caption(f"Worksheet: `{sheets_status['sheet_name']}`")
         else:
+            missing_items = []
+            if not sheets_status["has_spreadsheet_id"]:
+                missing_items.append("Add `SPREADSHEET_ID` to `.env`.")
+            if not sheets_status["has_credentials"]:
+                missing_items.append(
+                    "Save the service-account JSON at "
+                    f"`{sheets_status['credentials_path']}` or set "
+                    "`GOOGLE_SERVICE_ACCOUNT_JSON`."
+                )
+
             st.warning(
                 "Google Sheets not configured.\n\n"
-                "1. Create a GCP Service Account with Sheets API enabled\n"
-                "2. Save `google_credentials.json` in `credentials/`\n"
-                "3. Add `SPREADSHEET_ID` to your `.env` file\n"
-                "4. Share the sheet with the service account email"
+                + "\n".join(f"- {item}" for item in missing_items)
+            )
+            st.markdown(
+                """
+                Setup checklist:
+
+                1. Enable the Google Sheets API in Google Cloud.
+                2. Create a Service Account and download its JSON key.
+                3. Share the spreadsheet with the service account email.
+                4. Restart Streamlit after editing `.env`.
+                """
             )
 
     st.markdown("---")
