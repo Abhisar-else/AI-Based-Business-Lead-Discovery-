@@ -57,17 +57,14 @@ def run_pipeline(
         _update("⚠️ No businesses found. Try a different query or location.", 1.0)
         return pd.DataFrame()
 
-    _update(f"✅ Found {len(raw_businesses)} businesses — starting audit...", 0.25)
+    _update(f"✅ Found {len(raw_businesses)} businesses — starting audit in parallel...", 0.25)
 
-    # ── Stage 2: Website Audit ──────────────────────────────────────────────
+    # ── Stage 2: Website Audit (Parallel) ───────────────────────────────────
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     total = len(raw_businesses)
-    for i, biz in enumerate(raw_businesses):
-        pct = 0.25 + (0.35 * (i / total))
-        _update(
-            f"🌐 [{i+1}/{total}] Auditing: {biz.get('business_name', 'Unknown')}",
-            pct,
-        )
 
+    def _audit_single(index: int, biz: dict) -> str:
         try:
             status = check_website(biz.get("website_url"))
             biz["website_status"] = status.status
@@ -79,19 +76,19 @@ def run_pipeline(
             logger.warning(f"Website check failed for {biz.get('business_name')}: {exc}")
             biz["website_status"] = "No Website"
             biz["website_details"] = "Audit error"
+        return f"🌐 [{index+1}/{total}] Audited: {biz.get('business_name', 'Unknown')}"
 
-        time.sleep(0.3)   # Brief pause between checks
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(_audit_single, i, biz) for i, biz in enumerate(raw_businesses)]
+        for i, fut in enumerate(as_completed(futures)):
+            pct = 0.25 + (0.35 * (i / total))
+            msg = fut.result()
+            _update(msg, pct)
 
-    _update("✅ Website audit complete — running AI analysis...", 0.60)
+    _update("✅ Website audit complete — running AI analysis in parallel...", 0.60)
 
-    # ── Stage 3: AI Analysis ────────────────────────────────────────────────
-    for i, biz in enumerate(raw_businesses):
-        pct = 0.60 + (0.30 * (i / total))
-        _update(
-            f"🤖 [{i+1}/{total}] Analyzing: {biz.get('business_name', 'Unknown')}",
-            pct,
-        )
-
+    # ── Stage 3: AI Analysis (Parallel) ─────────────────────────────────────
+    def _analyze_single(index: int, biz: dict) -> str:
         try:
             analysis = analyze_business(biz)
             biz["potential_category"] = analysis.get("potential_category", "Medium")
@@ -100,6 +97,14 @@ def run_pipeline(
             logger.warning(f"Analysis failed for {biz.get('business_name')}: {exc}")
             biz["potential_category"] = "Medium"
             biz["reasoning"]          = "Analysis unavailable"
+        return f"🤖 [{index+1}/{total}] Analyzed: {biz.get('business_name', 'Unknown')}"
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(_analyze_single, i, biz) for i, biz in enumerate(raw_businesses)]
+        for i, fut in enumerate(as_completed(futures)):
+            pct = 0.60 + (0.30 * (i / total))
+            msg = fut.result()
+            _update(msg, pct)
 
     _update("✅ AI analysis complete — cleaning data...", 0.92)
 

@@ -29,7 +29,7 @@ The system identifies businesses across manufacturing, healthcare, hospitality, 
                │      │      │      │
      ┌─────────▼┐ ┌───▼────┐ ┌▼─────┐ ┌──▼──────────┐
      │ Scraper  │ │Website │ │  AI  │ │Google Sheets │
-     │SerpAPI   │ │Checker │ │Gemini│ │  gspread     │
+     │Serper.dev│ │Checker │ │Gemini│ │  gspread     │
      │JustDial  │ │SSL/Mob │ │OpenAI│ │  Append/     │
      │Sulekha   │ │Selenium│ │Rules │ │  Overwrite   │
      └──────────┘ └────────┘ └──────┘ └──────────────┘
@@ -39,7 +39,7 @@ The system identifies businesses across manufacturing, healthcare, hospitality, 
 
 | Stage | Module | Description |
 |-------|--------|-------------|
-| 1. Discovery | `core/scraper.py` | Collects business data from SerpAPI (Google Maps), JustDial, Sulekha |
+| 1. Discovery | `core/scraper.py` | Collects business data from Serper.dev (Google Maps), JustDial, Sulekha |
 | 2. Digital Audit | `core/website_checker.py` | Classifies each site as No Website / Poor / Good |
 | 3. AI Analysis | `core/analyzer.py` | Scores lead potential (High/Medium/Low) with reasoning |
 | 4. Export | `core/sheets_client.py` | Syncs results to Google Sheets automatically |
@@ -104,7 +104,7 @@ Edit `.env` with your API keys:
 GEMINI_API_KEY=your-gemini-api-key-here
 
 # Google Maps data source (optional but recommended)
-SERPAPI_KEY=your-serpapi-key-here
+SERPER_API_KEY=your-serper-api-key-here
 
 # Google Sheets export
 SPREADSHEET_ID=your-google-spreadsheet-id-here
@@ -116,7 +116,7 @@ GOOGLE_CREDENTIALS_PATH=credentials/google_credentials.json
 | Key | Free Tier | Get it at |
 |-----|-----------|-----------|
 | **Gemini AI** | Generous free tier | [aistudio.google.com](https://aistudio.google.com) |
-| **SerpAPI** | 100 searches/month | [serpapi.com](https://serpapi.com) |
+| **Serper.dev** | 2500 free searches | [serper.dev](https://serper.dev) |
 | **Google Sheets** | Free | [GCP Console](https://console.cloud.google.com/iam-admin/serviceaccounts) |
 
 > **Note:** The system works without any API keys! It uses JustDial/Sulekha scraping as data sources and heuristic rules for classification when AI keys are not configured.
@@ -171,7 +171,7 @@ The dashboard opens at `http://localhost:8501`.
 | Layer | Technology |
 |-------|------------|
 | Frontend / UI | Streamlit, Plotly |
-| Data Collection | requests, BeautifulSoup4, Selenium, SerpAPI |
+| Data Collection | requests, BeautifulSoup4, Selenium, Serper.dev |
 | AI Analysis | Google Gemini 1.5 Flash, OpenAI GPT-4o-mini |
 | Data Processing | Pandas |
 | Storage | Google Sheets (gspread), CSV cache |

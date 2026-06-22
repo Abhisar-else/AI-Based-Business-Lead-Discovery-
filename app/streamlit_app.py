@@ -28,7 +28,7 @@ from core.config import (
     TARGET_CATEGORIES,
     has_gemini_key,
     has_openai_key,
-    has_serpapi_key,
+    has_serper_key,
     has_sheets_config,
     SHEET_COLUMNS,
 )
@@ -268,14 +268,14 @@ with st.sidebar:
     # API Status section
     st.markdown("### 🔌 API Status")
 
-    serpapi_ok  = has_serpapi_key()
+    serper_ok   = has_serper_key()
     gemini_ok   = has_gemini_key()
     openai_ok   = has_openai_key()
     sheets_ok   = has_sheets_config()
 
     st.markdown(
-        f'<div class="api-status {"api-ok" if serpapi_ok else "api-warn"}">'
-        f'{"✅" if serpapi_ok else "⚠️"} SerpAPI (Google Maps)</div>',
+        f'<div class="api-status {"api-ok" if serper_ok else "api-warn"}">'
+        f'{"✅" if serper_ok else "⚠️"} Serper.dev (Google Maps)</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -730,8 +730,8 @@ with tab_settings:
     with col_set1:
         st.markdown("#### 🔑 API Keys Status")
         st.markdown(
-            f"{'✅' if serpapi_ok else '❌'} **SerpAPI** — "
-            f"{'Configured' if serpapi_ok else 'Not set in `.env`'}"
+            f"{'✅' if serper_ok else '❌'} **Serper.dev** — "
+            f"{'Configured' if serper_ok else 'Not set in `.env`'}"
         )
         st.markdown(
             f"{'✅' if gemini_ok else '❌'} **Gemini AI** — "
@@ -774,7 +774,7 @@ with tab_settings:
     st.markdown("#### 📁 Setup Instructions")
     st.markdown("""
     1. **Copy** `.env.example` → `.env` and fill in your API keys
-    2. **SerpAPI** — Free at [serpapi.com](https://serpapi.com) (100 searches/month)
+    2. **Serper.dev** — API key from [serper.dev](https://serper.dev)
     3. **Gemini** — Free at [aistudio.google.com](https://aistudio.google.com)
     4. **Google Sheets** — [Create Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts)
     5. Run: `pip install -r requirements.txt`

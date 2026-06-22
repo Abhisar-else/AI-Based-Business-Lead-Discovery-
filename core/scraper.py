@@ -20,11 +20,11 @@ import requests
 from bs4 import BeautifulSoup
 
 from core.config import (
-    SERPAPI_KEY,
+    SERPER_API_KEY,
     RATE_LIMIT_DELAY,
     WEBSITE_TIMEOUT,
     MAX_RETRIES,
-    has_serpapi_key,
+    has_serper_key,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,58 +52,64 @@ def _get_headers() -> dict:
     }
 
 
-def _safe_get(url: str, **kwargs) -> Optional[requests.Response]:
+def _safe_get(
+    url: str,
+    retries: int = MAX_RETRIES,
+    timeout: int = WEBSITE_TIMEOUT,
+    **kwargs
+) -> Optional[requests.Response]:
     """HTTP GET with retries and rate limiting."""
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(retries):
         try:
             resp = requests.get(
                 url,
                 headers=_get_headers(),
-                timeout=WEBSITE_TIMEOUT,
+                timeout=timeout,
                 **kwargs
             )
             resp.raise_for_status()
             return resp
         except requests.RequestException as exc:
             logger.warning(f"[Attempt {attempt+1}] GET {url} failed: {exc}")
-            if attempt < MAX_RETRIES - 1:
+            if attempt < retries - 1:
                 time.sleep(RATE_LIMIT_DELAY * (attempt + 1))
     return None
 
 
-# ─── SerpAPI Source (Google Maps) ────────────────────────────────────────────
+# ─── Serper.dev Source (Google Maps) ──────────────────────────────────────────
 
-def _search_via_serpapi(query: str, location: str, max_results: int) -> list[dict]:
+def _search_via_serper(query: str, location: str, max_results: int) -> list[dict]:
     """
-    Fetch business listings from Google Maps via SerpAPI.
+    Fetch business listings from Google Maps via Serper.dev.
     Returns structured business dicts.
     """
     results = []
     try:
-        params = {
-            "engine": "google_maps",
-            "q": f"{query} in {location}",
-            "type": "search",
-            "api_key": SERPAPI_KEY,
-            "num": min(max_results, 20),
+        url = "https://google.serper.dev/maps"
+        headers = {
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json"
         }
-        resp = requests.get("https://serpapi.com/search", params=params, timeout=15)
+        payload = {
+            "q": f"{query} in {location}",
+        }
+        resp = requests.post(url, headers=headers, json=payload, timeout=15)
         resp.raise_for_status()
         data = resp.json()
 
-        for place in data.get("local_results", []):
+        for place in data.get("places", []):
             business = {
                 "business_name": place.get("title", "").strip(),
-                "industry_category": place.get("type", "").strip(),
+                "industry_category": place.get("category", place.get("type", "")).strip(),
                 "business_description": place.get("description", "").strip(),
                 "location": place.get("address", location).strip(),
-                "google_maps_link": place.get("link", ""),
+                "google_maps_link": place.get("googleMapsUrl", place.get("cid", "")),
                 "website_url": place.get("website", ""),
-                "phone_number": place.get("phone", ""),
+                "phone_number": place.get("phoneNumber", place.get("phone", "")),
                 "email_address": "",
                 "owner_founder": "",
                 "linkedin_profile": "",
-                "source": "serpapi_google_maps",
+                "source": "serper_google_maps",
                 "collected_at": datetime.now().isoformat(),
             }
             results.append(business)
@@ -111,7 +117,7 @@ def _search_via_serpapi(query: str, location: str, max_results: int) -> list[dic
                 break
 
     except Exception as exc:
-        logger.error(f"SerpAPI search failed: {exc}")
+        logger.error(f"Serper search failed: {exc}")
 
     return results
 
@@ -267,7 +273,7 @@ def extract_contact_info(url: str) -> dict:
     linkedin_found = ""
 
     for page_url in pages_to_check[:3]:  # Limit to 3 pages
-        resp = _safe_get(page_url)
+        resp = _safe_get(page_url, retries=1, timeout=4)
         if not resp:
             continue
 
@@ -331,14 +337,14 @@ def search_businesses(
 
     all_results: list[dict] = []
 
-    # --- Source 1: SerpAPI (best quality) ---
-    if has_serpapi_key():
-        _log("🔍 Searching Google Maps via SerpAPI...")
-        results = _search_via_serpapi(query, location, max_results)
-        _log(f"   ✓ SerpAPI returned {len(results)} results")
+    # --- Source 1: Serper.dev (best quality) ---
+    if has_serper_key():
+        _log("🔍 Searching Google Maps via Serper.dev...")
+        results = _search_via_serper(query, location, max_results)
+        _log(f"   ✓ Serper returned {len(results)} results")
         all_results.extend(results)
     else:
-        _log("⚠️  No SerpAPI key — skipping Google Maps source")
+        _log("⚠️  No Serper.dev API key — skipping Google Maps source")
 
     # --- Source 2: JustDial (India fallback) ---
     remaining = max_results - len(all_results)
@@ -358,9 +364,11 @@ def search_businesses(
         _log(f"   ✓ Sulekha returned {len(results)} results")
         all_results.extend(results)
 
-    # --- Enrich with contact info from websites ---
-    _log(f"📬 Extracting contact info for {len(all_results)} businesses...")
-    for i, biz in enumerate(all_results):
+    # --- Enrich with contact info from websites in parallel ---
+    _log(f"📬 Extracting contact info for {len(all_results)} businesses in parallel...")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _enrich_single(index, biz):
         if biz.get("website_url") and not biz.get("email_address"):
             try:
                 contact = extract_contact_info(biz["website_url"])
@@ -368,9 +376,17 @@ def search_businesses(
                     k: v for k, v in contact.items()
                     if not biz.get(k) and v
                 })
-                _log(f"   [{i+1}/{len(all_results)}] Enriched: {biz['business_name']}")
+                return f"   [{index+1}/{len(all_results)}] Enriched: {biz['business_name']}"
             except Exception as exc:
                 logger.debug(f"Contact extraction failed for {biz.get('business_name')}: {exc}")
+        return None
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(_enrich_single, i, biz) for i, biz in enumerate(all_results)]
+        for fut in as_completed(futures):
+            msg = fut.result()
+            if msg:
+                _log(msg)
 
     _log(f"✅ Discovery complete: {len(all_results)} businesses found")
     return all_results[:max_results]

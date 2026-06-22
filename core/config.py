@@ -21,9 +21,9 @@ OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 GEMINI_MODEL: str = "gemini-1.5-flash"
 
 # ─── Data Collection ──────────────────────────────────────────────────────────
-# SerpAPI key for Google Maps structured data
-# Sign up free at https://serpapi.com (100 searches/month)
-SERPAPI_KEY: str = os.getenv("SERPAPI_KEY", "")
+# Serper.dev API key for Google Maps structured data
+# Sign up at https://serper.dev
+SERPER_API_KEY: str = os.getenv("SERPER_API_KEY", "")
 
 # ─── Google Sheets ────────────────────────────────────────────────────────────
 SPREADSHEET_ID: str = os.getenv("SPREADSHEET_ID", "")
@@ -95,8 +95,8 @@ def has_gemini_key() -> bool:
 def has_openai_key() -> bool:
     return bool(OPENAI_API_KEY and OPENAI_API_KEY != "your-openai-api-key-here")
 
-def has_serpapi_key() -> bool:
-    return bool(SERPAPI_KEY and SERPAPI_KEY != "your-serpapi-key-here")
+def has_serper_key() -> bool:
+    return bool(SERPER_API_KEY and SERPER_API_KEY != "your-serper-api-key-here")
 
 def has_sheets_config() -> bool:
     return bool(

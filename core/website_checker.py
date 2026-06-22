@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WebsiteStatus:
-    status: str           # "No Website" | "Poor Website" | "Good Website"
+    status: str = "No Website"  # "No Website" | "Poor Website" | "Good Website"
     url: str = ""
     has_ssl: bool = False
     is_mobile_friendly: bool = False

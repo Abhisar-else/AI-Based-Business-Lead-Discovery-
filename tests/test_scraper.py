@@ -80,10 +80,10 @@ class TestExtractContactInfo:
 class TestSearchBusinesses:
     """Test the main search orchestration function."""
 
-    @patch("core.scraper._search_via_serpapi")
+    @patch("core.scraper._search_via_serper")
     @patch("core.scraper._search_via_justdial")
     @patch("core.scraper._search_via_sulekha")
-    @patch("core.scraper.has_serpapi_key", return_value=False)
+    @patch("core.scraper.has_serper_key", return_value=False)
     def test_returns_list(self, mock_key, mock_sulekha, mock_jd, mock_serp):
         """Should return a list even if all sources return empty."""
         mock_jd.return_value = []
@@ -92,10 +92,10 @@ class TestSearchBusinesses:
         results = search_businesses("Hotels", "Indore", max_results=5)
         assert isinstance(results, list)
 
-    @patch("core.scraper._search_via_serpapi")
-    @patch("core.scraper.has_serpapi_key", return_value=True)
-    def test_serpapi_results_passed_through(self, mock_key, mock_serp):
-        """SerpAPI results should appear in the output."""
+    @patch("core.scraper._search_via_serper")
+    @patch("core.scraper.has_serper_key", return_value=True)
+    def test_serper_results_passed_through(self, mock_key, mock_serp):
+        """Serper.dev results should appear in the output."""
         mock_serp.return_value = [
             {
                 "business_name": "Test Hotel",
@@ -108,7 +108,7 @@ class TestSearchBusinesses:
                 "email_address": "",
                 "owner_founder": "",
                 "linkedin_profile": "",
-                "source": "serpapi_google_maps",
+                "source": "serper_google_maps",
                 "collected_at": "2024-01-01",
             }
         ]
@@ -119,7 +119,7 @@ class TestSearchBusinesses:
 
     def test_respects_max_results(self):
         """Output should never exceed max_results."""
-        with patch("core.scraper.has_serpapi_key", return_value=False), \
+        with patch("core.scraper.has_serper_key", return_value=False), \
              patch("core.scraper._search_via_justdial", return_value=[
                  {"business_name": f"Biz {i}", "website_url": ""} for i in range(10)
              ]), \
