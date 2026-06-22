@@ -61,28 +61,38 @@ def _sheet_rows(df: pd.DataFrame) -> list[list[str]]:
 
 
 def _get_worksheet():
-    """
-    Authenticate and return the target gspread Worksheet object.
-    Raises RuntimeError if credentials are missing or invalid.
-    """
     try:
         import gspread
+        from google.oauth2.service_account import Credentials
 
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file",
         ]
 
-        creds = _build_credentials(scopes)
-        client = gspread.authorize(creds)
+        # Try Streamlit secrets first (cloud deployment)
+        try:
+            import streamlit as st
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        except Exception:
+            # Fallback to local file (local development)
+            from pathlib import Path
+            creds_path = Path(GOOGLE_CREDENTIALS_PATH)
+            if not creds_path.exists():
+                raise FileNotFoundError(
+                    f"Google credentials not found at: {creds_path}"
+                )
+            creds = Credentials.from_service_account_file(
+                str(creds_path), scopes=scopes
+            )
 
+        client = gspread.authorize(creds)
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
 
-        # Get or create the target worksheet
         try:
             worksheet = spreadsheet.worksheet(SHEET_NAME)
         except gspread.WorksheetNotFound:
-            logger.info(f"Creating new worksheet: '{SHEET_NAME}'")
             worksheet = spreadsheet.add_worksheet(
                 title=SHEET_NAME,
                 rows=1000,
@@ -92,8 +102,7 @@ def _get_worksheet():
         return worksheet
 
     except ImportError:
-        raise ImportError(
-            "gspread or google-auth not installed. "
+        raise ImportError("gspread or google-auth not installed.
             "Run: pip install gspread google-auth"
         )
 
