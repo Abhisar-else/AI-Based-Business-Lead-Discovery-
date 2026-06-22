@@ -102,9 +102,8 @@ def _get_worksheet():
         return worksheet
 
     except ImportError:
-        raise ImportError("gspread or google-auth not installed.
-            "Run: pip install gspread google-auth"
-        )
+        raise ImportError("gspread or google-auth not installed")
+
 
 
 def _ensure_header(worksheet) -> None:

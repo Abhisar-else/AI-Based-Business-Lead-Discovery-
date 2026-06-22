@@ -1,0 +1,8 @@
+python -c "
+import json
+with open('C:\Users\VINOD SHARMA\Downloads\snappy-cosine-478117-d9-c1946f3f995b.json') as f:
+    d = json.load(f)
+print('[gcp_service_account]')
+for k, v in d.items():
+    print(k + ' = ' + json.dumps(v))
+"
