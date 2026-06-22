@@ -201,8 +201,7 @@ def _search_via_sulekha(query: str, location: str, max_results: int) -> list[dic
     results = []
     city = location.lower().replace(" ", "-")
     q    = query.lower().replace(" ", "-")
-    url  = f"https://www.sulekha.com/{q}/{city}"
-
+    url = f"https://www.sulekha.com/{q}-in-{city}"
     resp = _safe_get(url)
     if not resp:
         return results
