@@ -43,6 +43,7 @@ from core.data_pipeline import (
 )
 from core.sheets_client import (
     append_dataframe,
+    overwrite_sheet,
     get_sheet_url,
     test_connection,
 )
@@ -558,7 +559,7 @@ with tab_table:
         )
 
         # Export buttons
-        col_e1, col_e2, col_e3 = st.columns(3)
+        col_e1, col_e2, col_e3, col_e4 = st.columns(4)
 
         with col_e1:
             csv_bytes = export_to_csv_bytes(filtered)
@@ -571,8 +572,8 @@ with tab_table:
             )
 
         with col_e2:
-            if st.button("📤  Export to Google Sheets", use_container_width=True):
-                with st.spinner("Exporting to Google Sheets..."):
+            if st.button("📤  Append to Sheets", use_container_width=True):
+                with st.spinner("Appending to Google Sheets..."):
                     success, msg = append_dataframe(filtered)
                     if success:
                         st.success(msg)
@@ -583,6 +584,18 @@ with tab_table:
                         st.error(msg)
 
         with col_e3:
+            if st.button("🔄  Refresh Sheet", use_container_width=True):
+                with st.spinner("Refreshing Google Sheet..."):
+                    success, msg = overwrite_sheet(filtered)
+                    if success:
+                        st.success(msg)
+                        url = get_sheet_url()
+                        if url:
+                            st.markdown(f"[📊 Open Google Sheet]({url})")
+                    else:
+                        st.error(msg)
+
+        with col_e4:
             st.download_button(
                 label="📋  Download Full Data",
                 data=export_to_csv_bytes(df),

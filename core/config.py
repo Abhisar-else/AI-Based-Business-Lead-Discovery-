@@ -32,6 +32,7 @@ GOOGLE_CREDENTIALS_PATH: str = os.getenv(
     "GOOGLE_CREDENTIALS_PATH",
     str(_project_root / "credentials" / "google_credentials.json")
 )
+GOOGLE_SERVICE_ACCOUNT_JSON: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
 
 # ─── Business Categories ──────────────────────────────────────────────────────
 TARGET_CATEGORIES: list[str] = [
@@ -99,8 +100,16 @@ def has_serper_key() -> bool:
     return bool(SERPER_API_KEY and SERPER_API_KEY != "your-serper-api-key-here")
 
 def has_sheets_config() -> bool:
-    return bool(
+    has_spreadsheet = bool(
         SPREADSHEET_ID
         and SPREADSHEET_ID != "your-google-spreadsheet-id-here"
-        and Path(GOOGLE_CREDENTIALS_PATH).exists()
+        and SPREADSHEET_ID != "your-google-spreadsheet-id"
+    )
+    has_credentials = bool(
+        GOOGLE_SERVICE_ACCOUNT_JSON
+        or Path(GOOGLE_CREDENTIALS_PATH).exists()
+    )
+    return bool(
+        has_spreadsheet
+        and has_credentials
     )

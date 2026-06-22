@@ -16,7 +16,7 @@ dist/
 credentials/google_credentials.json
 credentials/*.json
 
-graphyify-out/
+graphify-out/
 # Data cache
 data/*.csv
 data/*.json

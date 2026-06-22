@@ -10,6 +10,7 @@ Handles:
 """
 
 import logging
+import json
 import time
 from pathlib import Path
 from typing import Optional
@@ -20,6 +21,7 @@ from core.config import (
     SPREADSHEET_ID,
     SHEET_NAME,
     GOOGLE_CREDENTIALS_PATH,
+    GOOGLE_SERVICE_ACCOUNT_JSON,
     SHEET_COLUMNS,
     has_sheets_config,
 )
@@ -32,6 +34,32 @@ _SHEETS_WRITE_DELAY = 1.2
 
 # ─── Connection ───────────────────────────────────────────────────────────────
 
+def _build_credentials(scopes: list[str]):
+    """Build Google credentials from env JSON first, then local JSON file."""
+    from google.oauth2.service_account import Credentials
+
+    if GOOGLE_SERVICE_ACCOUNT_JSON:
+        try:
+            service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+        except json.JSONDecodeError as exc:
+            raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON.") from exc
+        return Credentials.from_service_account_info(service_account_info, scopes=scopes)
+
+    creds_path = Path(GOOGLE_CREDENTIALS_PATH)
+    if not creds_path.exists():
+        raise FileNotFoundError(
+            f"Google credentials not found at: {creds_path}\n"
+            "Add credentials/google_credentials.json or set GOOGLE_SERVICE_ACCOUNT_JSON."
+        )
+
+    return Credentials.from_service_account_file(str(creds_path), scopes=scopes)
+
+
+def _sheet_rows(df: pd.DataFrame) -> list[list[str]]:
+    """Return rows in the configured Sheet column order."""
+    return df.reindex(columns=SHEET_COLUMNS, fill_value="").fillna("").astype(str).values.tolist()
+
+
 def _get_worksheet():
     """
     Authenticate and return the target gspread Worksheet object.
@@ -39,21 +67,13 @@ def _get_worksheet():
     """
     try:
         import gspread
-        from google.oauth2.service_account import Credentials
 
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file",
         ]
 
-        creds_path = Path(GOOGLE_CREDENTIALS_PATH)
-        if not creds_path.exists():
-            raise FileNotFoundError(
-                f"Google credentials not found at: {creds_path}\n"
-                "Please follow the setup guide in README.md to create a Service Account."
-            )
-
-        creds = Credentials.from_service_account_file(str(creds_path), scopes=scopes)
+        creds = _build_credentials(scopes)
         client = gspread.authorize(creds)
 
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
@@ -103,7 +123,8 @@ def append_dataframe(df: pd.DataFrame) -> tuple[bool, str]:
     if not has_sheets_config():
         return False, (
             "Google Sheets not configured. "
-            "Add SPREADSHEET_ID and credentials/google_credentials.json."
+            "Add SPREADSHEET_ID and credentials/google_credentials.json "
+            "or GOOGLE_SERVICE_ACCOUNT_JSON."
         )
 
     if df.empty:
@@ -113,8 +134,7 @@ def append_dataframe(df: pd.DataFrame) -> tuple[bool, str]:
         worksheet = _get_worksheet()
         _ensure_header(worksheet)
 
-        # Convert DataFrame rows to list-of-lists, replacing NaN with ""
-        rows = df.fillna("").astype(str).values.tolist()
+        rows = _sheet_rows(df)
 
         # Batch append in chunks of 50 to stay within API limits
         chunk_size = 50
@@ -157,8 +177,7 @@ def overwrite_sheet(df: pd.DataFrame) -> tuple[bool, str]:
         logger.info("Cleared existing Google Sheet data")
         time.sleep(_SHEETS_WRITE_DELAY)
 
-        # Write header + all rows in one batch
-        all_rows = [SHEET_COLUMNS] + df.fillna("").astype(str).values.tolist()
+        all_rows = [SHEET_COLUMNS] + _sheet_rows(df)
         worksheet.update(f"A1", all_rows, value_input_option="USER_ENTERED")
 
         msg = f"✅ Sheet refreshed with {len(df)} leads"
