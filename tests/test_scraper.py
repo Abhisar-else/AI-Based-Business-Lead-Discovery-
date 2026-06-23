@@ -76,26 +76,23 @@ class TestExtractContactInfo:
         # Both should be filtered as false positives
         assert "example.com" not in info["email_address"]
 
-
 class TestSearchBusinesses:
     """Test the main search orchestration function."""
 
-    @patch("core.scraper._search_via_serper")
-    @patch("core.scraper._search_via_justdial")
     @patch("core.scraper._search_via_sulekha")
-    @patch("core.scraper.has_serper_key", return_value=False)
-    def test_returns_list(self, mock_key, mock_sulekha, mock_jd, mock_serp):
+    @patch("core.scraper._search_via_justdial")
+    @patch("core.scraper.has_serpapi_key", return_value=False)
+    def test_returns_list(self, mock_key, mock_jd, mock_sulekha):
         """Should return a list even if all sources return empty."""
         mock_jd.return_value = []
         mock_sulekha.return_value = []
-
         results = search_businesses("Hotels", "Indore", max_results=5)
         assert isinstance(results, list)
 
-    @patch("core.scraper._search_via_serper")
-    @patch("core.scraper.has_serper_key", return_value=True)
-    def test_serper_results_passed_through(self, mock_key, mock_serp):
-        """Serper.dev results should appear in the output."""
+    @patch("core.scraper._search_via_serpapi")
+    @patch("core.scraper.has_serpapi_key", return_value=True)
+    def test_serpapi_results_passed_through(self, mock_key, mock_serp):
+        """SerpAPI results should appear in the output."""
         mock_serp.return_value = [
             {
                 "business_name": "Test Hotel",
@@ -108,22 +105,31 @@ class TestSearchBusinesses:
                 "email_address": "",
                 "owner_founder": "",
                 "linkedin_profile": "",
-                "source": "serper_google_maps",
+                "source": "serpapi_google_maps",
                 "collected_at": "2024-01-01",
             }
         ]
-
         results = search_businesses("Hotels", "Indore", max_results=1)
         assert len(results) >= 1
         assert results[0]["business_name"] == "Test Hotel"
 
     def test_respects_max_results(self):
         """Output should never exceed max_results."""
-        with patch("core.scraper.has_serper_key", return_value=False), \
+        with patch("core.scraper.has_serpapi_key", return_value=False), \
              patch("core.scraper._search_via_justdial", return_value=[
                  {"business_name": f"Biz {i}", "website_url": ""} for i in range(10)
              ]), \
              patch("core.scraper._search_via_sulekha", return_value=[]):
-
             results = search_businesses("Test", "City", max_results=3)
             assert len(results) <= 3
+
+    def test_filters_false_positive_emails(self):
+        """test@test.com should be filtered out."""
+        with patch("core.scraper.has_serpapi_key", return_value=False), \
+             patch("core.scraper._search_via_justdial", return_value=[]), \
+             patch("core.scraper._search_via_sulekha", return_value=[]):
+            results = search_businesses("Test", "City", max_results=3)
+            for r in results:
+                assert "example.com" not in r.get("email_address", "")
+
+
