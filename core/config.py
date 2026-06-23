@@ -91,7 +91,7 @@ SHEET_COLUMNS: list[str] = [
 
 # ─── Validation Helpers ───────────────────────────────────────────────────────
 
-        def has_gemini_key() -> bool:
+ def has_gemini_key() -> bool:
     try:
         import streamlit as st
         key = st.secrets.get("GEMINI_API_KEY", GEMINI_API_KEY)
