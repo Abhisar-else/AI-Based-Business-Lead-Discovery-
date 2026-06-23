@@ -26,6 +26,9 @@ from core.config import (
     MAX_RETRIES,
     has_serper_key,
 )
+SERPAPI_KEY = SERPER_API_KEY  
+has_SERPAPI_KEY = has_serper_key
+# Alias for backward compatibility
 
 logger = logging.getLogger(__name__)
 
