@@ -81,7 +81,7 @@ class TestSearchBusinesses:
 
     @patch("core.scraper._search_via_sulekha")
     @patch("core.scraper._search_via_justdial")
-    @patch("core.config.has_serpapi_key", return_value=False)
+    @patch("core.scraper.has_serpapi_key", return_value=False)
     def test_returns_list(self, mock_key, mock_jd, mock_sulekha):
         """Should return a list even if all sources return empty."""
         mock_jd.return_value = []
