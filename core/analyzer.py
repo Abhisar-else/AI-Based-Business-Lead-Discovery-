@@ -29,6 +29,11 @@ digital transformation. Your task is to evaluate a business lead and determine
 its potential for digital services (website, SEO, online marketing, e-commerce).
 
 Respond ONLY with a valid JSON object — no markdown, no explanation outside JSON.
+# Add "summary" to the JSON output prompt:
+Return JSON with exactly these keys:
+- potential_category: "High" | "Medium" | "Low"
+- reasoning: one sentence why
+- summary: one sentence business description like "Growing textile manufacturer in Indore with no digital presence"
 """
 
 _USER_PROMPT_TEMPLATE = """Evaluate this business lead and determine its digital 
