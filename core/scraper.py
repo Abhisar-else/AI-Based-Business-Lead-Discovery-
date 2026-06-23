@@ -289,6 +289,26 @@ def extract_contact_info(url: str) -> dict:
             if not any(skip in e.lower() for skip in ["example", "yourname", "test@", "sentry"]):
                 emails_found.add(e.lower())
 
+# Owner/Founder — look for About page
+about_urls = [
+    urljoin(url, "/about"),
+    urljoin(url, "/about-us"),
+    urljoin(url, "/team"),
+]
+for about_url in about_urls:
+    about_resp = _safe_get(about_url)
+    if about_resp:
+        about_soup = BeautifulSoup(about_resp.text, "lxml")
+        # Look for founder/owner patterns
+        text = about_soup.get_text(" ", strip=True)
+        founder_match = re.search(
+            r"(?:founder|owner|director|ceo|md|proprietor)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)",
+            text, re.IGNORECASE
+        )
+        if founder_match:
+            result["owner_founder"] = founder_match.group(1)
+            break
+
         # Extract Indian + international phone numbers
         phone_pattern = r"(?:\+91[\-\s]?)?[6-9]\d{9}|(?:\+1[\-\s]?)?\(?\d{3}\)?[\-\s]?\d{3}[\-\s]?\d{4}"
         for p in re.findall(phone_pattern, text):
