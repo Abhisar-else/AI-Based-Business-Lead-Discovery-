@@ -90,14 +90,31 @@ SHEET_COLUMNS: list[str] = [
 ]
 
 # ─── Validation Helpers ───────────────────────────────────────────────────────
-def has_gemini_key() -> bool:
-    return bool(GEMINI_API_KEY and GEMINI_API_KEY != "your-gemini-api-key-here")
+
+        def has_gemini_key() -> bool:
+    try:
+        import streamlit as st
+        key = st.secrets.get("GEMINI_API_KEY", GEMINI_API_KEY)
+    except Exception:
+        key = GEMINI_API_KEY
+    return bool(key and key != "your-gemini-api-key-here")
 
 def has_openai_key() -> bool:
     return bool(OPENAI_API_KEY and OPENAI_API_KEY != "your-openai-api-key-here")
 
 def has_serper_key() -> bool:
-    return bool(SERPER_API_KEY and SERPER_API_KEY != "your-serper-api-key-here")
+    try:
+        import streamlit as st
+        key = st.secrets.get("SERPER_API_KEY", SERPER_API_KEY)
+    except Exception:
+        key = SERPER_API_KEY
+    return bool(key and key != "your-serper-api-key-here")
+
+# ─── Aliases for scraper.py compatibility ─────────────────────────────────────
+SERPAPI_KEY = SERPER_API_KEY
+
+def has_serpapi_key() -> bool:
+    return has_serper_key()
 
 def has_sheets_config() -> bool:
     has_spreadsheet = bool(
@@ -105,13 +122,25 @@ def has_sheets_config() -> bool:
         and SPREADSHEET_ID != "your-google-spreadsheet-id-here"
         and SPREADSHEET_ID != "your-google-spreadsheet-id"
     )
-    has_credentials = bool(
+    if not has_spreadsheet:
+        try:
+            import streamlit as st
+            has_spreadsheet = bool(st.secrets.get("SPREADSHEET_ID"))
+        except Exception:
+            pass
+    if not has_spreadsheet:
+        return False
+    # Check Streamlit secrets (cloud)
+    try:
+        import streamlit as st
+        if "gcp_service_account" in st.secrets:
+            return True
+    except Exception:
+        pass
+    # Check local env or file
+    return bool(
         GOOGLE_SERVICE_ACCOUNT_JSON
         or Path(GOOGLE_CREDENTIALS_PATH).exists()
-    )
-    return bool(
-        has_spreadsheet
-        and has_credentials
     )
 
 def get_sheets_config_status() -> dict[str, object]:
@@ -124,8 +153,17 @@ def get_sheets_config_status() -> dict[str, object]:
         and SPREADSHEET_ID != "your-google-spreadsheet-id-here"
         and SPREADSHEET_ID != "your-google-spreadsheet-id"
     )
+    try:
+        import streamlit as st
+        has_streamlit_secrets = "gcp_service_account" in st.secrets
+        if not has_spreadsheet:
+            has_spreadsheet = bool(st.secrets.get("SPREADSHEET_ID"))
+    except Exception:
+        has_streamlit_secrets = False
 
-    if has_service_account_json:
+    if has_streamlit_secrets:
+        credential_source = "Streamlit Secrets"
+    elif has_service_account_json:
         credential_source = "GOOGLE_SERVICE_ACCOUNT_JSON"
     elif has_credentials_file:
         credential_source = str(creds_path)
@@ -134,7 +172,7 @@ def get_sheets_config_status() -> dict[str, object]:
 
     return {
         "has_spreadsheet_id": has_spreadsheet,
-        "has_credentials": has_service_account_json or has_credentials_file,
+        "has_credentials": has_service_account_json or has_credentials_file or has_streamlit_secrets,
         "credentials_path": str(creds_path),
         "credential_source": credential_source,
         "sheet_name": SHEET_NAME,
