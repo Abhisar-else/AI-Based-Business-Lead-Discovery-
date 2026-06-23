@@ -89,9 +89,13 @@ class TestSearchBusinesses:
         results = search_businesses("Hotels", "Indore", max_results=5)
         assert isinstance(results, list)
 
-    @patch("core.scraper._search_via_serper")
-    @patch("core.scraper.has_serpapi_key", return_value=True)
-    def test_serpapi_results_passed_through(self, mock_key, mock_serp):
+    @patch("core.scraper.extract_contact_info", return_value={
+    "email_address": "", "phone_number": "", 
+    "linkedin_profile": "", "owner_founder": ""
+})
+@patch("core.scraper._search_via_serper")
+@patch("core.scraper.has_serpapi_key", return_value=True)
+def test_serpapi_results_passed_through(self, mock_key, mock_serp, mock_extract):
         """SerpAPI results should appear in the output."""
         mock_serp.return_value = [
             {
