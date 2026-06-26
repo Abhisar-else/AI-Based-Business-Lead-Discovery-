@@ -322,25 +322,25 @@ def extract_contact_info(url: str) -> dict:
     # Also try /contact or /about pages
     parsed = urlparse(url)
     base = f"{parsed.scheme}://{parsed.netloc}"
-    for path in ["/contact", "/contact-us", "/about", "/about-us"]:
+    for path in ["/contact", "/contact-us", "/about", "/about-us","/team"]:
         pages_to_check.append(base + path)
 
     emails_found   = set()
     phones_found   = set()
     linkedin_found = ""
+    owner = ""
 
-    for page_url in pages_to_check[:2]:  # Limit to 3 pages
+    for page_url in pages_to_check[:3]:  # Limit to 3 pages
         resp = _safe_get(page_url, retries=1, timeout=4)
         if not resp:
             continue
 
         text = resp.text
+        soup = BeautifulSoup(text, "lxml")  # Single parse, used for everything
 
         # Extract emails using regex
         email_pattern = r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-        found_emails = re.findall(email_pattern, text)
-        # Filter out common false positives
-        for e in found_emails:
+        for e in re.findall(email_pattern, text):
             if not any(skip in e.lower() for skip in ["example", "yourname", "test@", "sentry"]):
                 emails_found.add(e.lower())
 
@@ -351,20 +351,32 @@ def extract_contact_info(url: str) -> dict:
             cleaned = _clean_phone(p)
             if cleaned:
                 phones_found.add(cleaned)
+             # Extract LinkedIn
+        if not linkedin_found:
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if "linkedin.com" in href:
+                    linkedin_found = href.split("?")[0]
+                    break
 
-        # Find LinkedIn
-        soup = BeautifulSoup(text, "lxml")
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if "linkedin.com" in href and not linkedin_found:
-                linkedin_found = href.split("?")[0]  # Strip tracking params
-                break
-
+        # Extract Owner/Founder (NEW: inside the loop, reuses soup)
+        if not owner:
+            about_text = soup.get_text(" ", strip=True)
+            match = re.search(
+                r"(?:founder|owner|director|ceo|md|proprietor|managing director)"
+                r"[:\s\-]+([A-Z][a-z]+ [A-Z][a-z]+)",
+                about_text,
+                re.IGNORECASE,
+            )
+            if match:
+                owner = match.group(1)
         time.sleep(RATE_LIMIT_DELAY)
 
     info["email_address"]  = sorted(emails_found)[0] if emails_found else ""
     info["phone_number"]   = sorted(phones_found)[0] if phones_found else ""
     info["linkedin_profile"] = linkedin_found
+    info["owner_founder"] = owner
+    return info
     # Owner/Founder — check About/Team pages
     owner = ""
     for page_url in pages_to_check[:3]:
