@@ -89,34 +89,30 @@ class TestSearchBusinesses:
         results = search_businesses("Hotels", "Indore", max_results=5)
         assert isinstance(results, list)
 
-    @patch("core.scraper.extract_contact_info", return_value={
-    "email_address": "", "phone_number": "", 
-    "linkedin_profile": "", "owner_founder": ""
-})
-@patch("core.scraper._search_via_serper")
-@patch("core.scraper.has_serpapi_key", return_value=True)
-def test_serpapi_results_passed_through(self, mock_key, mock_serp, mock_extract):
+    def test_serpapi_results_passed_through(self):
         """SerpAPI results should appear in the output."""
-        mock_serp.return_value = [
-            {
-                "business_name": "Test Hotel",
-                "industry_category": "Hotels",
-                "business_description": "",
-                "location": "Indore",
-                "google_maps_link": "",
-                "website_url": "",
-                "phone_number": "",
-                "email_address": "",
-                "owner_founder": "",
-                "linkedin_profile": "",
-                "source": "serpapi_google_maps",
-                "collected_at": "2024-01-01",
-            }
-        ]
-        results = search_businesses("Hotels", "Indore", max_results=1)
-        assert len(results) >= 1
-        assert results[0]["business_name"] == "Test Hotel"
-
+        with patch("core.scraper.has_serpapi_key", return_value=True), \
+             patch("core.scraper._search_via_serper", return_value=[
+                 {"business_name": "Test Hotel",
+                  "industry_category": "Hotels",
+                  "business_description": "",
+                  "location": "Indore",
+                  "google_maps_link": "",
+                  "website_url": "",
+                  "phone_number": "",
+                  "email_address": "",
+                  "owner_founder": "",
+                  "linkedin_profile": "",
+                  "source": "serper_google_maps",
+                  "collected_at": "2024-01-01"}
+             ]), \
+             patch("core.scraper.extract_contact_info", return_value={
+                 "email_address": "", "phone_number": "",
+                 "linkedin_profile": "", "owner_founder": ""
+             }):
+            results = search_businesses("Hotels", "Indore", max_results=1)
+            assert len(results) >= 1
+            assert results[0]["business_name"] == "Test Hotel"  
     def test_respects_max_results(self):
         """Output should never exceed max_results."""
         with patch("core.config.has_serpapi_key", return_value=False), \

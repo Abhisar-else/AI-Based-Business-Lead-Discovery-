@@ -24,12 +24,11 @@ logger = logging.getLogger(__name__)
 
 # ─── AI Prompt Template ───────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """You are a senior business development analyst specializing in 
+_SYSTEM_PROMPT = f"""You are a senior business development analyst specializing in 
 digital transformation. Your task is to evaluate a business lead and determine 
 its potential for digital services (website, SEO, online marketing, e-commerce).
 
 Respond ONLY with a valid JSON object — no markdown, no explanation outside JSON.
-# Add "summary" to the JSON output prompt:
 Return JSON with exactly these keys:
 - potential_category: "High" | "Medium" | "Low"
 - reasoning: one sentence why
@@ -54,7 +53,8 @@ Based on this data, classify the lead potential and explain why.
 Return ONLY this JSON:
 {{
   "potential_category": "High" | "Medium" | "Low",
-  "reasoning": "<one clear sentence explaining the classification>"
+  "reasoning": "<one clear sentence explaining the classification>",
+  "summary": "<one sentence business description>"
 }}
 
 Classification guide:
@@ -230,6 +230,7 @@ def analyze_business(business: dict) -> dict:
         result = _analyze_with_gemini(business)
         if result:
             result["analysis_source"] = "gemini"
+            result["ai_summary"]= result.get("summary", "")
             return result
 
     # OpenAI fallback
@@ -243,6 +244,7 @@ def analyze_business(business: dict) -> dict:
     logger.info(f"Using heuristic analysis for '{business.get('business_name')}'")
     result = _analyze_with_heuristics(business)
     result["analysis_source"] = "heuristic"
+    result["ai_summary"]= "No AI key available; heuristic classification applied."
     return result
 
 

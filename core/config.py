@@ -86,6 +86,7 @@ SHEET_COLUMNS: list[str] = [
     "LinkedIn Profile",
     "Potential Category",
     "Reasoning",
+    "AI Summary",
     "Collected At",
 ]
 
