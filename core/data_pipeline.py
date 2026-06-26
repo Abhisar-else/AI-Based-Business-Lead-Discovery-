@@ -48,6 +48,7 @@ def build_dataframe(raw_leads: list[dict]) -> pd.DataFrame:
         "linkedin_profile":    "LinkedIn Profile",
         "potential_category":  "Potential Category",
         "reasoning":           "Reasoning",
+         "ai_summary":          "AI Summary",        
         "collected_at":        "Collected At",
     }
     df = df.rename(columns=rename_map)

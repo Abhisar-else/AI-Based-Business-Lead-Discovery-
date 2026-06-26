@@ -196,7 +196,7 @@ def _analyze_with_heuristics(business: dict) -> dict:
     for condition, potential, reasoning in _HEURISTIC_RULES:
         try:
             if condition(business):
-                return {"potential_category": potential, "reasoning": reasoning}
+                return {"potential_category": potential, "reasoning": reasoning,"ai_summary": reasoning}
         except Exception:
             continue
 
@@ -204,7 +204,8 @@ def _analyze_with_heuristics(business: dict) -> dict:
     return {
         "potential_category": "Medium",
         "reasoning": "Insufficient data for precise classification — manual review recommended.",
-    }
+        "ai_summary": "Heuristic analysis: insufficient data for detailed summary.",  
+          }
 
 
 # ─── Main Public Function ─────────────────────────────────────────────────────

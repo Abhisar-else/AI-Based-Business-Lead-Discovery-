@@ -203,8 +203,12 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stSidebar"] h1 {
     font-size: 1.1rem !important;
     font-weight: 700;
+}/* ─── Status Log Styling ─── */
+[data-testid="stStatusWidget"] {
+    font-size: 0.85rem;
 }
 
+ 
 /* ─── Smooth Transitions on interactive elements ─── */
 button, .stButton>button {
     transition: all 0.2s ease !important;

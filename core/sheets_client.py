@@ -186,7 +186,7 @@ def overwrite_sheet(df: pd.DataFrame) -> tuple[bool, str]:
         time.sleep(_SHEETS_WRITE_DELAY)
 
         all_rows = [SHEET_COLUMNS] + _sheet_rows(df)
-        worksheet.update(f"A1", all_rows, value_input_option="USER_ENTERED")
+        worksheet.update(f"A1", all_rows, value_input_option="RAW")
 
         msg = f"✅ Sheet refreshed with {len(df)} leads"
         logger.info(msg)
