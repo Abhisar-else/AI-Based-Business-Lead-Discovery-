@@ -321,43 +321,58 @@ if run_btn:
     st.session_state.pipeline_running = True
     st.session_state.pipeline_logs = []
 
-    progress_bar  = st.progress(0, text="Initializing pipeline...")
-    status_area   = st.status(
-        f"🔍 Discovering **{selected_category}** in **{location}**...",
-        expanded=True,
-    )
+    # Create a clean container for status
+    progress_bar = st.progress(0, text="Initializing...")
+    status_container = st.container()
+    
+    with status_container:
+        status_header = st.status(
+            f"🔍 Discovering **{selected_category}** in **{location}**...",
+            expanded=True,
+        )
+        log_placeholder = st.empty()  # Shows last 5 lines only
 
     def _progress_handler(msg, pct: float):
         """Callback from pipeline → UI updates."""
-
+        # Handle dict, str, or anything else
         if isinstance(msg, dict):
             text = msg.get("message") or msg.get("msg") or msg.get("status") or str(msg)
         else:
             text = str(msg)
+        
+        # Update progress bar
         progress_bar.progress(min(pct, 1.0), text=text)
-        status_area.write(text)
+        
+        # Update log (keep only last 8 lines visible)
         st.session_state.pipeline_logs.append(text)
+        recent_logs = st.session_state.pipeline_logs[-8:]
+        log_html = "<br>".join(f"• {log}" for log in recent_logs)
+        log_placeholder.markdown(
+            f'<div style="background: #1a1d29; padding: 0.8rem; border-radius: 8px; '
+            f'font-family: monospace; font-size: 0.8rem; color: #9ca3af; '
+            f'max-height: 200px; overflow-y: auto;">{log_html}</div>',
+            unsafe_allow_html=True
+        )
 
     try:
-        with status_area:
-            df = run_pipeline(
-                query=selected_category,
-                location=location,
-                max_results=max_results,
-                progress_callback=_progress_handler,
-            )
+        df = run_pipeline(
+            query=selected_category,
+            location=location,
+            max_results=max_results,
+            progress_callback=_progress_handler,
+        )
 
         if not df.empty:
             st.session_state.leads_df = df
             progress_bar.progress(1.0, text="✅ Discovery complete!")
-            status_area.update(
+            status_header.update(
                 label=f"✅ Found {len(df)} business leads!",
                 state="complete",
                 expanded=False,
             )
         else:
             progress_bar.progress(1.0, text="⚠️ No results found")
-            status_area.update(
+            status_header.update(
                 label="⚠️ No businesses found for this search.",
                 state="error",
                 expanded=False,
@@ -365,7 +380,7 @@ if run_btn:
 
     except Exception as exc:
         progress_bar.progress(1.0, text="❌ Pipeline error")
-        status_area.update(label=f"❌ Error: {exc}", state="error")
+        status_header.update(label=f"❌ Error: {exc}", state="error")
         st.error(f"Pipeline encountered an error: {exc}")
 
     finally:
