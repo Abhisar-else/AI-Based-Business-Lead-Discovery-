@@ -545,6 +545,36 @@ with tab_table:
         ]
         available_cols = [c for c in display_cols if c in filtered.columns]
 
+
+        # Search + filter controls
+        col_s, col_f = st.columns([2, 1])
+        with col_s:
+            search_term = st.text_input(
+                "🔍 Search leads",
+                placeholder="Search by name, location, category...",
+                key="search_leads"
+            )
+        with col_f:
+            potential_filter = st.multiselect(
+                "Potential",
+                options=["High", "Medium", "Low"],
+                default=["High", "Medium", "Low"],
+                key="potential_filter"
+            )
+
+        # Apply filters
+        display_df = df.copy()
+        if search_term:
+            mask = display_df.apply(
+                lambda r: search_term.lower() in str(r).lower(), axis=1
+            )
+            display_df = display_df[mask]
+        if potential_filter:
+            display_df = display_df[
+                display_df["Potential Category"].isin(potential_filter)
+            ]
+        st.caption(f"Showing {len(display_df)} of {len(df)} leads")
+            
         st.dataframe(
             filtered[available_cols],
             use_container_width=True,
