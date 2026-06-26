@@ -245,7 +245,62 @@ def _search_via_sulekha(query: str, location: str, max_results: int) -> list[dic
             logger.debug(f"Sulekha parse error: {exc}")
 
     return results
+  
+# ─── IndiaMart Scraper (B2B India directory) ──────────────────────────────────
 
+def _search_via_indiamart(query: str, location: str, max_results: int) -> list[dict]:
+    """Scrape IndiaMart for B2B business listings."""
+    results = []
+    url = f"https://dir.indiamart.com/search.mp?ss={quote_plus(query)}&cq={quote_plus(location)}"
+
+    resp = _safe_get(url)
+    if not resp:
+        logger.warning("IndiaMart returned no response")
+        return results
+
+    soup = BeautifulSoup(resp.text, "lxml")
+    cards = soup.select(".company-name-widget, .compnyName, .bname, .card")
+    logger.info(f"IndiaMart found {len(cards)} raw cards")
+
+    for card in cards[:max_results]:
+        try:
+            name_el = card.select_one("a.company-name, a.bname, h2 a, h3 a")
+            if not name_el:
+                continue
+            name = name_el.get_text(strip=True)
+            if not name:
+                continue
+
+            website = ""
+            site_el = card.select_one("a[href*='http']:not([href*='indiamart'])")
+            if site_el:
+                website = site_el.get("href", "")
+
+            phone = ""
+            phone_el = card.select_one(".contact, .phone, .tel")
+            if phone_el:
+                phone = _clean_phone(phone_el.get_text(strip=True))
+
+            results.append({
+                "business_name": name,
+                "industry_category": query,
+                "business_description": "",
+                "location": location,
+                "google_maps_link": "",
+                "website_url": website,
+                "phone_number": phone,
+                "email_address": "",
+                "owner_founder": "",
+                "linkedin_profile": "",
+                "source": "indiamart",
+                "collected_at": datetime.now().isoformat(),
+            })
+        except Exception as exc:
+            logger.debug(f"IndiaMart card parse error: {exc}")
+            continue
+
+    logger.info(f"IndiaMart returned {len(results)} results")
+    return results 
 
 # ─── Contact Extractor ────────────────────────────────────────────────────────
 
@@ -365,6 +420,15 @@ def search_businesses(
         time.sleep(RATE_LIMIT_DELAY)
         results = _search_via_sulekha(query, location, remaining)
         _log(f"   ✓ Sulekha returned {len(results)} results")
+        all_results.extend(results)
+
+    # --- Source 4: IndiaMart (B2B India directory) ---
+    remaining = max_results - len(all_results)
+    if remaining > 0:
+        _log("🔍 Searching IndiaMart...")
+        time.sleep(RATE_LIMIT_DELAY)
+        results = _search_via_indiamart(query, location, remaining)
+        _log(f"   ✓ IndiaMart returned {len(results)} results")
         all_results.extend(results)
 
     # --- Enrich with contact info from websites in parallel ---
