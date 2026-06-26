@@ -327,11 +327,16 @@ if run_btn:
         expanded=True,
     )
 
-    def _progress_handler(msg: str, pct: float):
+    def _progress_handler(msg, pct: float):
         """Callback from pipeline → UI updates."""
-        progress_bar.progress(min(pct, 1.0), text=msg)
-        status_area.write(msg)
-        st.session_state.pipeline_logs.append(msg)
+
+        if isinstance(msg, dict):
+            text = msg.get("message") or msg.get("msg") or msg.get("status") or str(msg)
+        else:
+            text = str(msg)
+        progress_bar.progress(min(pct, 1.0), text=text)
+        status_area.write(text)
+        st.session_state.pipeline_logs.append(text)
 
     try:
         with status_area:
@@ -501,109 +506,249 @@ with tab_dashboard:
 #  TAB 2: Leads Table
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  TAB 2: Leads Table
+# ═══════════════════════════════════════════════════════════════════════════════
+
 with tab_table:
     if df.empty:
         st.info("No leads yet. Run a discovery to populate this table.")
     else:
-        # Filters
-        col_f1, col_f2, col_f3 = st.columns(3)
+        # ─── Filter Row ───────────────────────────────────────────────────
+        st.markdown("#### 🔍 Filters")
+
+        col_f1, col_f2, col_f3, col_f4 = st.columns([2, 2, 2, 1])
 
         with col_f1:
-            potential_filter = st.multiselect(
-                "Filter by Potential",
-                options=["High", "Medium", "Low"],
-                default=["High", "Medium", "Low"],
-            )
-        with col_f2:
-            web_filter = st.multiselect(
-                "Filter by Website Status",
-                options=["No Website", "Poor Website", "Good Website"],
-                default=["No Website", "Poor Website", "Good Website"],
-            )
-        with col_f3:
-            search_term = st.text_input("🔎 Search by name...", placeholder="Type to filter")
-
-        # Apply filters
-        filtered = df.copy()
-        if potential_filter:
-            filtered = filter_by_potential(filtered, potential_filter)
-        if web_filter:
-            filtered = filter_by_website_status(filtered, web_filter)
-        if search_term:
-            mask = filtered["Business Name"].str.contains(
-                search_term, case=False, na=False
-            )
-            filtered = filtered[mask]
-
-        st.caption(f"Showing {len(filtered)} of {len(df)} leads")
-
-        # Display columns (hide verbose ones)
-        display_cols = [
-            "Business Name", "Industry Category", "Location",
-            "Website Status", "Phone Number", "Email Address",
-            "Potential Category", "Reasoning",
-        ]
-        available_cols = [c for c in display_cols if c in filtered.columns]
-
-
-        # Search + filter controls
-        col_s, col_f = st.columns([2, 1])
-        with col_s:
-            search_term = st.text_input(
-                "🔍 Search leads",
-                placeholder="Search by name, location, category...",
-                key="search_leads"
-            )
-        with col_f:
             potential_filter = st.multiselect(
                 "Potential",
                 options=["High", "Medium", "Low"],
                 default=["High", "Medium", "Low"],
-                key="potential_filter"
+                key="potential_filter",
+            )
+        with col_f2:
+            web_filter = st.multiselect(
+                "Website Status",
+                options=["No Website", "Poor Website", "Good Website"],
+                default=["No Website", "Poor Website", "Good Website"],
+                key="web_filter",
+            )
+        with col_f3:
+            search_term = st.text_input(
+                "Search",
+                placeholder="Name, location, category...",
+                key="search_leads",
+            )
+        with col_f4:
+            st.markdown("<div style='margin-top: 1.65rem;'></div>", unsafe_allow_html=True)
+            if st.button("🔄 Reset", use_container_width=True, key="reset_filters"):
+                for key in ["potential_filter", "web_filter", "search_leads",
+                            "sort_column", "sort_order", "visible_columns"]:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
+
+        # ─── Sort & Customize Row ───────────────────────────────────────
+        col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
+
+        default_display_cols = [
+            "Business Name", "Industry Category", "Location",
+            "Website Status", "Phone Number", "Email Address",
+            "Potential Category", "Reasoning",
+        ]
+        available_default = [c for c in default_display_cols if c in df.columns]
+        all_columns       = df.columns.tolist()
+
+        with col_s1:
+            sort_column = st.selectbox(
+                "Sort by",
+                options=available_default or all_columns,
+                index=0,
+                key="sort_column",
+            )
+        with col_s2:
+            sort_order = st.radio(
+                "Order",
+                options=["↓ Desc", "↑ Asc"],
+                horizontal=True,
+                key="sort_order",
+                label_visibility="collapsed",
+            )
+        with col_s3:
+            with st.popover("⚙️ Columns", use_container_width=True):
+                visible_cols = st.multiselect(
+                    "Visible columns",
+                    options=all_columns,
+                    default=available_default,
+                    key="visible_columns",
+                )
+                if not visible_cols:
+                    visible_cols = available_default
+                    st.caption("⚠️ Showing default columns (none selected)")
+
+        # ─── Apply Filters ──────────────────────────────────────────────
+        filtered = df.copy()
+
+        # Potential filter
+        if potential_filter and "Potential Category" in filtered.columns:
+            filtered = filtered[filtered["Potential Category"].isin(potential_filter)]
+
+        # Website filter
+        if web_filter and "Website Status" in filtered.columns:
+            filtered = filtered[filtered["Website Status"].isin(web_filter)]
+
+        # Search filter (multi-column, case-insensitive)
+        if search_term:
+            mask = filtered.apply(
+                lambda r: search_term.lower() in str(r).lower(),
+                axis=1
+            )
+            filtered = filtered[mask]
+
+        # Sort
+        if sort_column in filtered.columns:
+            ascending = sort_order == "↑ Asc"
+            filtered = filtered.sort_values(
+                by=sort_column,
+                ascending=ascending,
+                na_position="last",
             )
 
-        # Apply filters
-        display_df = df.copy()
-        if search_term:
-            mask = display_df.apply(
-                lambda r: search_term.lower() in str(r).lower(), axis=1
-            )
-            display_df = display_df[mask]
-        if potential_filter:
-            display_df = display_df[
-                display_df["Potential Category"].isin(potential_filter)
-            ]
-        st.caption(f"Showing {len(display_df)} of {len(df)} leads")
-            
-        st.dataframe(display_df,
-            filtered[available_cols],
+        # ─── Result Badges ──────────────────────────────────────────────
+        if not filtered.empty and "Potential Category" in filtered.columns:
+            high_count   = (filtered["Potential Category"] == "High").sum()
+            medium_count = (filtered["Potential Category"] == "Medium").sum()
+            low_count    = (filtered["Potential Category"] == "Low").sum()
+        else:
+            high_count = medium_count = low_count = 0
+
+        st.markdown(f"""
+        <div style="
+            display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+            padding: 0.7rem 1rem; margin: 0.8rem 0 1rem 0;
+            background: var(--bg-card, #1a1d29);
+            border: 1px solid var(--border, #2d3148);
+            border-radius: 10px; font-size: 0.85rem;
+        ">
+            <span style="font-weight: 600;">📊 Showing
+                <b style="color: var(--accent-blue, #4f8cf7);">{len(filtered)}</b>
+                of <b>{len(df)}</b> leads
+            </span>
+            <span style="margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-high">🟢 {high_count} High</span>
+                <span class="badge badge-medium">🟡 {medium_count} Medium</span>
+                <span class="badge badge-low">🔴 {low_count} Low</span>
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ─── Empty State ────────────────────────────────────────────────
+        if filtered.empty:
+            st.warning("⚠️ No leads match your current filters.")
+            st.markdown("**Try:**")
+            st.markdown("- Removing the search term")
+            st.markdown("- Selecting more potential categories")
+            st.markdown("- Including all website statuses")
+            st.stop()
+
+        # ─── Data Table ─────────────────────────────────────────────────
+        display_data = filtered[visible_cols] if visible_cols else filtered
+
+        # Build dynamic column config
+        column_config = {}
+        col_widths = {
+            "Business Name":      "medium",
+            "Industry Category":  "small",
+            "Location":           "medium",
+            "Website Status":     "small",
+            "Phone Number":       "small",
+            "Email Address":      "medium",
+            "Potential Category": "small",
+            "Reasoning":          "large",
+            "Website URL":        "medium",
+            "Google Maps Link":   "medium",
+            "Owner / Founder":    "medium",
+            "LinkedIn Profile":   "medium",
+            "Business Description": "large",
+        }
+        col_labels = {
+            "Business Name":        "Business",
+            "Industry Category":    "Category",
+            "Location":             "Location",
+            "Website Status":       "Web Status",
+            "Phone Number":         "Phone",
+            "Email Address":        "Email",
+            "Potential Category":   "Potential",
+            "Reasoning":            "AI Reasoning",
+            "Website URL":          "URL",
+            "Google Maps Link":     "Maps",
+            "Owner / Founder":      "Owner",
+            "LinkedIn Profile":     "LinkedIn",
+            "Business Description": "Description",
+        }
+        for col in display_data.columns:
+            label = col_labels.get(col, col)
+            width = col_widths.get(col, "small")
+            column_config[col] = st.column_config.TextColumn(label, width=width)
+
+        st.dataframe(
+            display_data,
             use_container_width=True,
-            height=450,
-            column_config={
-                "Business Name":     st.column_config.TextColumn("Business", width="medium"),
-                "Industry Category": st.column_config.TextColumn("Category", width="small"),
-                "Location":          st.column_config.TextColumn("Location", width="medium"),
-                "Website Status":    st.column_config.TextColumn("Web Status", width="small"),
-                "Potential Category": st.column_config.TextColumn("Potential", width="small"),
-                "Reasoning":         st.column_config.TextColumn("AI Reasoning", width="large"),
-            },
+            height=500,
+            hide_index=True,
+            column_config=column_config,
         )
 
-        # Export buttons
+        # ─── Quick Copy (collapsible) ──────────────────────────────────
+        with st.expander("📋 Quick Copy Lead", expanded=False):
+            col_qc1, col_qc2 = st.columns([1, 2])
+            with col_qc1:
+                copy_target = st.selectbox(
+                    "Lead",
+                    options=filtered["Business Name"].tolist(),
+                    key="copy_lead",
+                    index=None,
+                    placeholder="Choose a lead...",
+                )
+            with col_qc2:
+                if copy_target:
+                    row = filtered[filtered["Business Name"] == copy_target].iloc[0]
+                    copy_text = (
+                        f"🏢 {row.get('Business Name', 'N/A')}\n"
+                        f"📂 {row.get('Industry Category', 'N/A')}\n"
+                        f"📍 {row.get('Location', 'N/A')}\n"
+                        f"📞 {row.get('Phone Number', 'N/A')}\n"
+                        f"📧 {row.get('Email Address', 'N/A')}\n"
+                        f"🌐 {row.get('Website URL', 'N/A')}\n"
+                        f"👤 {row.get('Owner / Founder', 'N/A')}\n"
+                        f"⭐ {row.get('Potential Category', 'N/A')}\n"
+                        f"\n💡 {row.get('Reasoning', 'N/A')}"
+                    )
+                    st.code(copy_text, language="text")
+                else:
+                    st.info("Select a lead above to generate a copyable text block.")
+
+        # ─── Export Row ─────────────────────────────────────────────────
+        st.markdown("#### 📤 Export")
+
         col_e1, col_e2, col_e3, col_e4 = st.columns(4)
 
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        safe_cat  = selected_category.lower().replace(" ", "_")
+        safe_loc  = location.lower().replace(" ", "_")
+
         with col_e1:
-            csv_bytes = export_to_csv_bytes(filtered)
             st.download_button(
-                label="⬇️  Download CSV",
-                data=csv_bytes,
-                file_name=f"leads_{selected_category.lower()}_{location.lower()}_{datetime.now():%Y%m%d}.csv",
+                label="⬇️  Filtered CSV",
+                data=export_to_csv_bytes(filtered),
+                file_name=f"leads_{safe_cat}_{safe_loc}_{timestamp}.csv",
                 mime="text/csv",
                 use_container_width=True,
+                help=f"Download the {len(filtered)} filtered leads",
             )
 
         with col_e2:
-            if st.button("📤  Append to Sheets", use_container_width=True):
+            if st.button("📤  Append to Sheets", use_container_width=True, key="append_btn"):
                 with st.spinner("Appending to Google Sheets..."):
                     success, msg = append_dataframe(filtered)
                     if success:
@@ -615,7 +760,7 @@ with tab_table:
                         st.error(msg)
 
         with col_e3:
-            if st.button("🔄  Refresh Sheet", use_container_width=True):
+            if st.button("🔄  Overwrite Sheet", use_container_width=True, key="overwrite_btn"):
                 with st.spinner("Refreshing Google Sheet..."):
                     success, msg = overwrite_sheet(filtered)
                     if success:
@@ -628,13 +773,13 @@ with tab_table:
 
         with col_e4:
             st.download_button(
-                label="📋  Download Full Data",
+                label="📋  Full Data CSV",
                 data=export_to_csv_bytes(df),
-                file_name=f"all_leads_{datetime.now():%Y%m%d}.csv",
+                file_name=f"all_leads_{timestamp}.csv",
                 mime="text/csv",
                 use_container_width=True,
+                help=f"Download all {len(df)} leads (ignores filters)",
             )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  TAB 3: AI Analysis (Detail View)

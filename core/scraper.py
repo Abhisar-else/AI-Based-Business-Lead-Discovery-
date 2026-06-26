@@ -364,7 +364,7 @@ def extract_contact_info(url: str) -> dict:
 
     info["email_address"]  = sorted(emails_found)[0] if emails_found else ""
     info["phone_number"]   = sorted(phones_found)[0] if phones_found else ""
-    info["linkedin_profile"] = linkedin_found,
+    info["linkedin_profile"] = linkedin_found
     # Owner/Founder — check About/Team pages
     owner = ""
     for page_url in pages_to_check[:3]:
