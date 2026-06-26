@@ -64,7 +64,7 @@ class TestExtractContactInfo:
 
         info = extract_contact_info("https://testcompany.com")
         assert info["email_address"] == "info@testcompany.com"
-        assert "linkedin.com" in info["linkedin_profile"]
+        assert "linkedin.com" in str(info["linkedin_profile"])
 
     @patch("core.scraper._safe_get")
     def test_filters_example_emails(self, mock_get):
@@ -103,9 +103,12 @@ class TestSearchBusinesses:
                   "email_address": "",
                   "owner_founder": "",
                   "linkedin_profile": "",
-                  "source": "serper_google_maps",
+                  "source": "justdail",
                   "collected_at": "2024-01-01"}
              ]), \
+             patch("core.scraper._search_via_justdial", return_value=[]), \
+             patch("core.scraper._search_via_sulekha", return_value=[]), \
+             patch("core.scraper._search_via_indiamart", return_value=[]), \
              patch("core.scraper.extract_contact_info", return_value={
                  "email_address": "", "phone_number": "",
                  "linkedin_profile": "", "owner_founder": ""

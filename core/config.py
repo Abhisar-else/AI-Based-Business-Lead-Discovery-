@@ -54,7 +54,7 @@ MAX_RESULTS: int = 20
 RATE_LIMIT_DELAY: float = 2.0
 
 # HTTP request timeout in seconds
-WEBSITE_TIMEOUT: int = 8
+WEBSITE_TIMEOUT: int = 5
 
 # Maximum number of retries for failed requests
 MAX_RETRIES: int = 3

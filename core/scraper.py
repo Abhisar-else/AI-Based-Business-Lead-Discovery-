@@ -329,7 +329,7 @@ def extract_contact_info(url: str) -> dict:
     phones_found   = set()
     linkedin_found = ""
 
-    for page_url in pages_to_check[:3]:  # Limit to 3 pages
+    for page_url in pages_to_check[:2]:  # Limit to 3 pages
         resp = _safe_get(page_url, retries=1, timeout=4)
         if not resp:
             continue
@@ -466,7 +466,7 @@ def search_businesses(
                 return f"   [{index+1}/{len(all_results)}] Enriched: {biz['business_name']}"
             except Exception as exc:
                 logger.debug(f"Contact extraction failed for {biz.get('business_name')}: {exc}")
-        return None
+        return biz
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(_enrich_single, i, biz) for i, biz in enumerate(all_results)]
