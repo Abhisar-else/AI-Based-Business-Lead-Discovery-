@@ -310,7 +310,7 @@ def extract_contact_info(url: str) -> dict:
     Checks homepage + /contact page.
     Returns: { email, phone, linkedin }
     """
-    info = {"email_address": "", "phone_number": "", "linkedin_profile": ""}
+    info = {"email_address": "", "phone_number": "", "linkedin_profile": "","owner_founder": ""}
     if not url:
         return info
 
@@ -364,7 +364,27 @@ def extract_contact_info(url: str) -> dict:
 
     info["email_address"]  = sorted(emails_found)[0] if emails_found else ""
     info["phone_number"]   = sorted(phones_found)[0] if phones_found else ""
-    info["linkedin_profile"] = linkedin_found
+    info["linkedin_profile"] = linkedin_found,
+    # Owner/Founder — check About/Team pages
+    owner = ""
+    for page_url in pages_to_check[:3]:
+        try:
+            resp = _safe_get(page_url)
+            if not resp:
+                continue
+            about_text = BeautifulSoup(resp.text, "lxml").get_text(" ", strip=True)
+            match = re.search(
+                r"(?:founder|owner|director|ceo|md|proprietor)"
+                r"[:\s\-]+([A-Z][a-z]+ [A-Z][a-z]+)",
+                about_text,
+                re.IGNORECASE,
+            )
+            if match:
+                owner = match.group(1)
+                break
+        except Exception:
+            continue
+    info["owner_founder"] = owner
     return info
 
 
