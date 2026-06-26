@@ -575,7 +575,7 @@ with tab_table:
             ]
         st.caption(f"Showing {len(display_df)} of {len(df)} leads")
             
-        st.dataframe(
+        st.dataframe(display_df,
             filtered[available_cols],
             use_container_width=True,
             height=450,
