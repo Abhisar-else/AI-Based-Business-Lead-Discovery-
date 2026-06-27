@@ -377,27 +377,6 @@ def extract_contact_info(url: str) -> dict:
     info["linkedin_profile"] = linkedin_found
     info["owner_founder"] = owner
     return info
-    # Owner/Founder — check About/Team pages
-    owner = ""
-    for page_url in pages_to_check[:3]:
-        try:
-            resp = _safe_get(page_url)
-            if not resp:
-                continue
-            about_text = BeautifulSoup(resp.text, "lxml").get_text(" ", strip=True)
-            match = re.search(
-                r"(?:founder|owner|director|ceo|md|proprietor)"
-                r"[:\s\-]+([A-Z][a-z]+ [A-Z][a-z]+)",
-                about_text,
-                re.IGNORECASE,
-            )
-            if match:
-                owner = match.group(1)
-                break
-        except Exception:
-            continue
-    info["owner_founder"] = owner
-    return info
 
 
 # ─── Main Public Function ─────────────────────────────────────────────────────
@@ -473,6 +452,7 @@ def search_businesses(
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def _enrich_single(index, biz):
+        """Enrich a single business dict with contact info. Always returns a log string."""
         if biz.get("website_url") and not biz.get("email_address"):
             try:
                 contact = extract_contact_info(biz["website_url"])
@@ -483,21 +463,19 @@ def search_businesses(
                 return f"   [{index+1}/{len(all_results)}] Enriched: {biz['business_name']}"
             except Exception as exc:
                 logger.debug(f"Contact extraction failed for {biz.get('business_name')}: {exc}")
-        return biz
+        return f"   [{index+1}/{len(all_results)}] Skipped: {biz.get('business_name', 'Unknown')}"
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(_enrich_single, i, biz) for i, biz in enumerate(all_results)]
         completed = 0
         total = len(all_results)
-        
-        
+
         for fut in as_completed(futures):
-           completed += 1
-           fut.result()  # Just to catch exceptions
-            
-            # ONLY log every 3rd completion (not every single one)
-           if completed % 3 == 0 or completed == total:
-                _log(f"   ⏳ Enriched {completed}/{total}") 
+            completed += 1
+            fut.result()  # Just to catch exceptions
+            # Only log every 3rd completion to avoid flooding the UI
+            if completed % 3 == 0 or completed == total:
+                _log(f"   ⏳ Enriched {completed}/{total}")
 
     _log(f"✅ Discovery complete: {len(all_results)} businesses found")
     return all_results[:max_results]

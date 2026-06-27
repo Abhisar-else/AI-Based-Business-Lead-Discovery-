@@ -74,8 +74,10 @@ def run_pipeline(
                 biz["website_url"] = status.url
         except Exception as exc:
             logger.warning(f"Website check failed for {biz.get('business_name')}: {exc}")
-            biz["website_status"] = "No Website"
-            biz["website_details"] = "Audit error"
+            # Use 'Check Failed' — NOT 'No Website' — so we don't falsely claim
+            # the business has no website when the audit itself crashed.
+            biz["website_status"] = "Check Failed"
+            biz["website_details"] = f"Audit error: {exc}"
         return f"🌐 [{index+1}/{total}] Audited: {biz.get('business_name', 'Unknown')}"
 
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -93,10 +95,12 @@ def run_pipeline(
             analysis = analyze_business(biz)
             biz["potential_category"] = analysis.get("potential_category", "Medium")
             biz["reasoning"]          = analysis.get("reasoning", "")
+            biz["ai_summary"]         = analysis.get("ai_summary", analysis.get("summary", ""))
         except Exception as exc:
             logger.warning(f"Analysis failed for {biz.get('business_name')}: {exc}")
             biz["potential_category"] = "Medium"
             biz["reasoning"]          = "Analysis unavailable"
+            biz["ai_summary"]         = "Analysis error — manual review recommended"
         return f"🤖 [{index+1}/{total}] Analyzed: {biz.get('business_name', 'Unknown')}"
 
     with ThreadPoolExecutor(max_workers=5) as executor:

@@ -63,6 +63,10 @@ MAX_RETRIES: int = 3
 # Page response time (seconds) above which site is classified "Poor Website"
 SLOW_SITE_THRESHOLD: float = 5.0
 
+# Sentinel value used when a website audit raises an exception (distinct from
+# "No Website" which means the business genuinely has no URL or the URL is dead).
+WEBSITE_STATUS_CHECK_FAILED: str = "Check Failed"
+
 # ─── Data Paths ───────────────────────────────────────────────────────────────
 DATA_DIR: Path = _project_root / "data"
 LEADS_CACHE_PATH: Path = DATA_DIR / "leads_cache.csv"
@@ -112,8 +116,7 @@ def has_serper_key() -> bool:
     return bool(key and key != "your-serper-api-key-here")
 
 # ─── Aliases for scraper.py compatibility ─────────────────────────────────────
-SERPAPI_KEY = SERPER_API_KEY
-
+# has_serpapi_key kept for backward compatibility with scraper.py import
 def has_serpapi_key() -> bool:
     return has_serper_key()
 

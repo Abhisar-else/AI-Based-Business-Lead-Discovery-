@@ -64,6 +64,22 @@ Classification guide:
 """
 
 
+# ─── Prompt Builder ───────────────────────────────────────────────────────────
+
+def _build_prompt(business: dict) -> str:
+    """Build the analysis prompt for a business dict (shared by all AI backends)."""
+    return _USER_PROMPT_TEMPLATE.format(
+        business_name        = business.get("business_name", "Unknown"),
+        industry_category    = business.get("industry_category", "Unknown"),
+        location             = business.get("location", "Unknown"),
+        website_status       = business.get("website_status", "Unknown"),
+        has_phone            = "Yes" if business.get("phone_number") else "No",
+        has_email            = "Yes" if business.get("email_address") else "No",
+        website_url          = business.get("website_url", "None"),
+        business_description = business.get("business_description", "Not available"),
+    )
+
+
 # ─── Gemini Integration ───────────────────────────────────────────────────────
 
 def _analyze_with_gemini(business: dict) -> Optional[dict]:
@@ -82,18 +98,7 @@ def _analyze_with_gemini(business: dict) -> Optional[dict]:
             system_instruction=_SYSTEM_PROMPT,
         )
 
-        prompt = _USER_PROMPT_TEMPLATE.format(
-            business_name       = business.get("business_name", "Unknown"),
-            industry_category   = business.get("industry_category", "Unknown"),
-            location            = business.get("location", "Unknown"),
-            website_status      = business.get("website_status", "Unknown"),
-            has_phone           = "Yes" if business.get("phone_number") else "No",
-            has_email           = "Yes" if business.get("email_address") else "No",
-            website_url         = business.get("website_url", "None"),
-            business_description= business.get("business_description", "Not available"),
-        )
-
-        response = model.generate_content(prompt)
+        response = model.generate_content(_build_prompt(business))
         result = json.loads(response.text)
 
         # Validate structure
@@ -118,23 +123,13 @@ def _analyze_with_openai(business: dict) -> Optional[dict]:
         from openai import OpenAI
 
         client = OpenAI(api_key=OPENAI_API_KEY)
-        prompt = _USER_PROMPT_TEMPLATE.format(
-            business_name       = business.get("business_name", "Unknown"),
-            industry_category   = business.get("industry_category", "Unknown"),
-            location            = business.get("location", "Unknown"),
-            website_status      = business.get("website_status", "Unknown"),
-            has_phone           = "Yes" if business.get("phone_number") else "No",
-            has_email           = "Yes" if business.get("email_address") else "No",
-            website_url         = business.get("website_url", "None"),
-            business_description= business.get("business_description", "Not available"),
-        )
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt},
+                {"role": "user",   "content": _build_prompt(business)},
             ],
             temperature=0.2,
             max_tokens=256,
