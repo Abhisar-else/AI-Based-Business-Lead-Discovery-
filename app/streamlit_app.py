@@ -336,7 +336,7 @@ if run_btn:
         )
         log_placeholder = st.empty()  # Shows last 5 lines only
 
-    def _progress_handler(msg, pct: float):
+    def _progress_handler(msg, pct: float = 0.5):
         """Callback from pipeline → UI updates."""
         # Handle dict, str, or anything else
         if isinstance(msg, dict):
