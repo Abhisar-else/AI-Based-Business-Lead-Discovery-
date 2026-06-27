@@ -81,7 +81,7 @@ def run_pipeline(
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(_audit_single, i, biz) for i, biz in enumerate(raw_businesses)]
         for i, fut in enumerate(as_completed(futures)):
-            pct = 0.25 + (0.35 * (i / total))
+            pct = 0.2 + (0.3 * (i / total))
             msg = fut.result()
             _update(msg, pct)
 
@@ -102,7 +102,7 @@ def run_pipeline(
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(_analyze_single, i, biz) for i, biz in enumerate(raw_businesses)]
         for i, fut in enumerate(as_completed(futures)):
-            pct = 0.60 + (0.30 * (i / total))
+            pct = 0.5 + (0.3 * (i / total))
             msg = fut.result()
             _update(msg, pct)
 

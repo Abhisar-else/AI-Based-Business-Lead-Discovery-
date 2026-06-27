@@ -336,14 +336,30 @@ if run_btn:
         )
         log_placeholder = st.empty()  # Shows last 5 lines only
 
-    def _progress_handler(msg, pct: float = 0.5):
-        """Callback from pipeline → UI updates."""
-        # Handle dict, str, or anything else
-        if isinstance(msg, dict):
-            text = msg.get("message") or msg.get("msg") or msg.get("status") or str(msg)
+    def _progress_handler(*args, **kwargs):
+        """
+        Callback from pipeline → UI updates.
+        Handles: callback(str), callback(str, float), callback(dict)
+        """
+        # Extract message and percentage from various call signatures
+        if len(args) == 1 and isinstance(args[0], dict):
+            msg_dict = args[0]
+            text = msg_dict.get("message") or msg_dict.get("msg") or msg_dict.get("status") or str(msg_dict)
+            pct = msg_dict.get("progress", 0.5)
+        elif len(args) >= 1:
+            text = str(args[0])
+            pct = args[1] if len(args) > 1 else kwargs.get("pct", 0.5)
         else:
-            text = str(msg)
-        
+            return
+
+        # Skip empty or useless messages
+        if not text or text.strip() in ("{}", "[]"):
+            return
+
+        # Truncate very long messages
+        if len(text) > 150:
+            text = text[:147] + "..."
+
         # Update progress bar
         progress_bar.progress(min(pct, 1.0), text=text)
         

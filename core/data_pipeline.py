@@ -118,7 +118,7 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def filter_by_potential(
     df: pd.DataFrame,
-    include: list[str , ...] = ("High", "Medium", "Low")
+    include: tuple[str , ...] = ("High", "Medium", "Low")
 ) -> pd.DataFrame:
     """Filter leads by Potential Category."""
     if df.empty or "Potential Category" not in df.columns:
