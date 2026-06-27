@@ -88,6 +88,8 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "Phone Number" in df.columns:
         df["Phone Number"] = df["Phone Number"].apply(_normalize_phone)
 
+        df["Phone Number"] = df["Phone Number"].astype(str).str.replace("+", "", regex=False)
+
     # 3. Lowercase emails
     if "Email Address" in df.columns:
         df["Email Address"] = df["Email Address"].str.lower().str.strip()
