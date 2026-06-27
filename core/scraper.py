@@ -431,7 +431,7 @@ def search_businesses(
     if has_serper_key():
         _log("🔍 Searching Google Maps via Serper.dev...")
         results = _search_via_serper(query, location, max_results)
-        _log(f"   ✓ Serper returned {len(results)} results")
+        _log(f"   ✓ Found {len(results)} from google maps")
         all_results.extend(results)
     else:
         _log("⚠️  No Serper.dev API key — skipping Google Maps source")
@@ -463,8 +463,13 @@ def search_businesses(
         _log(f"   ✓ IndiaMart returned {len(results)} results")
         all_results.extend(results)
 
+        
+    # --- Summary ---
+    _log(f"📊 Total: {len(all_results)} businesses found")
+
+
     # --- Enrich with contact info from websites in parallel ---
-    _log(f"📬 Extracting contact info for {len(all_results)} businesses in parallel...")
+    _log(f"📬 Extracting contact info for  businesses in parallel...")
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def _enrich_single(index, biz):
@@ -482,10 +487,17 @@ def search_businesses(
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(_enrich_single, i, biz) for i, biz in enumerate(all_results)]
+        completed = 0
+        total = len(all_results)
+        
+        
         for fut in as_completed(futures):
-            msg = fut.result()
-            if msg:
-                _log(msg)
+           completed += 1
+           fut.result()  # Just to catch exceptions
+            
+            # ONLY log every 3rd completion (not every single one)
+           if completed % 3 == 0 or completed == total:
+                _log(f"   ⏳ Enriched {completed}/{total}") 
 
     _log(f"✅ Discovery complete: {len(all_results)} businesses found")
     return all_results[:max_results]
