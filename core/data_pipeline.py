@@ -87,9 +87,6 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # 2. Normalize phone numbers
     if "Phone Number" in df.columns:
         df["Phone Number"] = df["Phone Number"].apply(_normalize_phone)
-
-        df["Phone Number"] = df["Phone Number"].astype(str).str.replace("+", "", regex=False)
-
     # 3. Lowercase emails
     if "Email Address" in df.columns:
         df["Email Address"] = df["Email Address"].str.lower().str.strip()
@@ -130,7 +127,7 @@ def filter_by_potential(
 
 def filter_by_website_status(
     df: pd.DataFrame,
-    statuses: list[str] = ("No Website", "Poor Website", "Good Website")
+    statuses: list[str] = ("No Website", "Poor Website", "Good Website", "check failed")
 ) -> pd.DataFrame:
     """Filter leads by Website Status."""
     if df.empty or "Website Status" not in df.columns:

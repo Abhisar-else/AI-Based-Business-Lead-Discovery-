@@ -30,6 +30,13 @@ SERPAPI_KEY = SERPER_API_KEY
 has_serpapi_key = has_serper_key
 # Alias for backward compatibility
 
+def _get_serper_key() -> str:
+    try:
+        import streamlit as st
+        return st.secrets.get("SERPER_API_KEY", SERPER_API_KEY)
+    except Exception:
+        return SERPER_API_KEY
+
 logger = logging.getLogger(__name__)
 
 # ─── User Agent Rotation ─────────────────────────────────────────────────────
@@ -90,7 +97,7 @@ def _search_via_serper(query: str, location: str, max_results: int) -> list[dict
     try:
         url = "https://google.serper.dev/maps"
         headers = {
-            "X-API-KEY": SERPER_API_KEY,
+            "X-API-KEY": _get_serper_key(),
             "Content-Type": "application/json"
         }
         payload = {

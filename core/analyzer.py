@@ -87,7 +87,13 @@ def _analyze_with_gemini(business: dict) -> Optional[dict]:
     try:
         import google.generativeai as genai
 
-        genai.configure(api_key=GEMINI_API_KEY)
+        from core.config import GEMINI_API_KEY as _key
+        try:
+            import streamlit as st
+            _key = st.secrets.get("GEMINI_API_KEY", _key)
+        except Exception:
+            pass
+        genai.configure(api_key=_key)
         model = genai.GenerativeModel(
             model_name=GEMINI_MODEL,
             generation_config={
