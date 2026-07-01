@@ -182,6 +182,11 @@ _HEURISTIC_RULES = [
         "Medium",
         "Website appears functional but lacks visible contact information for lead capture."
     ),
+(
+        lambda b: b.get("website_status") == "Check Failed",
+        "Medium",
+        "Website audit failed — manual verification recommended."
+    ),
     (
         lambda b: b.get("website_status") == "Good Website",
         "Low",
