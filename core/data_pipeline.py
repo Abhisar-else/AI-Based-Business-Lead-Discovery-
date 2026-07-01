@@ -219,10 +219,10 @@ def _normalize_phone(raw: str) -> str:
         d = digits[2:]
         return f"+91 {d[:5]} {d[5:]}"
 # Indian with leading 0: 11 digits starting with 0
-if len(digits) == 11 and digits[0] == "0":
-    d = digits[1:]
-    if d[0] in "6789":
-        return f"+91 {d[:5]} {d[5:]}"
+    if len(digits) == 11 and digits[0] == "0":
+        d = digits[1:]
+        if d[0] in "6789":
+           return f"+91 {d[:5]} {d[5:]}"
 
     # US format
     if len(digits) == 10:
