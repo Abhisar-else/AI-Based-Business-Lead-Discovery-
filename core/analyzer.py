@@ -240,6 +240,7 @@ def analyze_business(business: dict) -> dict:
         result = _analyze_with_openai(business)
         if result:
             result["analysis_source"] = "openai"
+            result["ai_summary"] = result.get("summary", result.get("reasoning", ""))
             return result
 
     # Deterministic heuristic fallback
