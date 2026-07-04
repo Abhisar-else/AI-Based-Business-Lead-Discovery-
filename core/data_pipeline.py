@@ -212,17 +212,17 @@ def _normalize_phone(raw: str) -> str:
 
     # Indian mobile: 10 digits starting with 6-9
     if len(digits) == 10 and digits[0] in "6789":
-        return f"+91 {digits[:5]} {digits[5:]}"
+        return f"91 {digits[:5]} {digits[5:]}"
 
     # Indian with country code: 12 digits starting with 91
     if len(digits) == 12 and digits[:2] == "91":
         d = digits[2:]
-        return f"+91 {d[:5]} {d[5:]}"
+        return f"91 {d[:5]} {d[5:]}"
 # Indian with leading 0: 11 digits starting with 0
     if len(digits) == 11 and digits[0] == "0":
         d = digits[1:]
         if d[0] in "6789":
-           return f"+91 {d[:5]} {d[5:]}"
+           return f"91 {d[:5]} {d[5:]}"
 
     # US format
     if len(digits) == 10:
